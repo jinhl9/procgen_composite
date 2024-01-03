@@ -9,7 +9,7 @@ from .builder import build
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-MAX_STATE_SIZE = 2 ** 20
+MAX_STATE_SIZE = 2**20
 
 ENV_NAMES = [
     "bigfish",
@@ -17,10 +17,15 @@ ENV_NAMES = [
     "bossfight_move_100",
     "bossfight_move_200",
     "bossfight_move_400",
+    "bossfight_moverandom_100",
+    "bossfight_moverandom_200",
+    "bossfight_moverandom_400",
     "bossfight_attack_100",
     "bossfight_attack_200",
     "bossfight_attack_400",
-    "bossfight_compositional",
+    "bossfight_compositional_100",
+    "bossfight_compositional_200",
+    "bossfight_compositional_400",
     "caveflyer",
     "chaser",
     "climber",
@@ -59,12 +64,13 @@ DISTRIBUTION_MODE_DICT = {
 
 
 def create_random_seed():
-    rand_seed = random.SystemRandom().randint(0, 2 ** 31 - 1)
+    rand_seed = random.SystemRandom().randint(0, 2**31 - 1)
     try:
         # force MPI processes to definitely choose different random seeds
         from mpi4py import MPI
 
-        rand_seed = rand_seed - (rand_seed % MPI.COMM_WORLD.size) + MPI.COMM_WORLD.rank
+        rand_seed = rand_seed - (rand_seed %
+                                 MPI.COMM_WORLD.size) + MPI.COMM_WORLD.rank
     except ModuleNotFoundError:
         pass
     return rand_seed
@@ -96,12 +102,17 @@ class BaseProcgenEnv(CEnv):
 
         lib_dir = os.path.join(SCRIPT_DIR, "data", "prebuilt")
         if os.path.exists(lib_dir):
-            assert any([os.path.exists(os.path.join(lib_dir, name)) for name in ["libenv.so", "libenv.dylib", "env.dll"]]), "package is installed, but the prebuilt environment library is missing"
+            assert any(
+                [
+                    os.path.exists(os.path.join(lib_dir, name))
+                    for name in ["libenv.so", "libenv.dylib", "env.dll"]
+                ]
+            ), "package is installed, but the prebuilt environment library is missing"
             assert not debug, "debug has no effect for pre-compiled library"
         else:
             # only compile if we don't find a pre-built binary
             lib_dir = build(debug=debug)
-        
+
         self.combos = self.get_combos()
 
         if render_mode is None:
@@ -114,21 +125,19 @@ class BaseProcgenEnv(CEnv):
         if rand_seed is None:
             rand_seed = create_random_seed()
 
-        options.update(
-            {
-                "env_name": env_name,
-                "num_levels": num_levels,
-                "start_level": start_level,
-                "num_actions": len(self.combos),
-                "use_sequential_levels": bool(use_sequential_levels),
-                "debug_mode": debug_mode,
-                "rand_seed": rand_seed,
-                "num_threads": num_threads,
-                "render_human": render_human,
-                # these will only be used the first time an environment is created in a process
-                "resource_root": resource_root,
-            }
-        )
+        options.update({
+            "env_name": env_name,
+            "num_levels": num_levels,
+            "start_level": start_level,
+            "num_actions": len(self.combos),
+            "use_sequential_levels": bool(use_sequential_levels),
+            "debug_mode": debug_mode,
+            "rand_seed": rand_seed,
+            "num_threads": num_threads,
+            "render_human": render_human,
+            # these will only be used the first time an environment is created in a process
+            "resource_root": resource_root,
+        })
 
         self.options = options
 
@@ -162,23 +171,25 @@ class BaseProcgenEnv(CEnv):
     def get_combos(self):
         return [
             ("LEFT", "DOWN"),
-            ("LEFT",),
+            ("LEFT", ),
             ("LEFT", "UP"),
-            ("DOWN",),
+            ("DOWN", ),
             (),
-            ("UP",),
+            ("UP", ),
             ("RIGHT", "DOWN"),
-            ("RIGHT",),
+            ("RIGHT", ),
             ("RIGHT", "UP"),
-            ("D",),
-            ("A",),
-            ("W",),
-            ("S",),
-            ("Q",),
-            ("E",),
+            ("D", ),
+            ("A", ),
+            ("W", ),
+            ("S", ),
+            ("Q", ),
+            ("E", ),
         ]
 
-    def keys_to_act(self, keys_list: Sequence[Sequence[str]]) -> List[Optional[np.ndarray]]:
+    def keys_to_act(
+            self,
+            keys_list: Sequence[Sequence[str]]) -> List[Optional[np.ndarray]]:
         """
         Convert list of keys being pressed to actions, used in interactive mode
         """
@@ -211,6 +222,7 @@ class ProcgenGym3Env(BaseProcgenEnv):
     """
     gym3 interface for Procgen
     """
+
     def __init__(
         self,
         num,
@@ -224,14 +236,12 @@ class ProcgenGym3Env(BaseProcgenEnv):
         distribution_mode="hard",
         **kwargs,
     ):
-        assert (
-            distribution_mode in DISTRIBUTION_MODE_DICT
-        ), f'"{distribution_mode}" is not a valid distribution mode.'
+        assert (distribution_mode in DISTRIBUTION_MODE_DICT
+                ), f'"{distribution_mode}" is not a valid distribution mode.'
 
         if distribution_mode == "exploration":
-            assert (
-                env_name in EXPLORATION_LEVEL_SEEDS
-            ), f"{env_name} does not support exploration mode"
+            assert (env_name in EXPLORATION_LEVEL_SEEDS
+                    ), f"{env_name} does not support exploration mode"
 
             distribution_mode = DISTRIBUTION_MODE_DICT["hard"]
             assert "num_levels" not in kwargs, "exploration mode overrides num_levels"
@@ -242,22 +252,23 @@ class ProcgenGym3Env(BaseProcgenEnv):
             distribution_mode = DISTRIBUTION_MODE_DICT[distribution_mode]
 
         options = {
-                "center_agent": bool(center_agent),
-                "use_generated_assets": bool(use_generated_assets),
-                "use_monochrome_assets": bool(use_monochrome_assets),
-                "restrict_themes": bool(restrict_themes),
-                "use_backgrounds": bool(use_backgrounds),
-                "paint_vel_info": bool(paint_vel_info),
-                "distribution_mode": distribution_mode,
-            }
+            "center_agent": bool(center_agent),
+            "use_generated_assets": bool(use_generated_assets),
+            "use_monochrome_assets": bool(use_monochrome_assets),
+            "restrict_themes": bool(restrict_themes),
+            "use_backgrounds": bool(use_backgrounds),
+            "paint_vel_info": bool(paint_vel_info),
+            "distribution_mode": distribution_mode,
+        }
         super().__init__(num, env_name, options, **kwargs)
-        
-        
+
+
 class ToBaselinesVecEnv(gym3.ToBaselinesVecEnv):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second' : 15
+        'video.frames_per_second': 15
     }
+
     def render(self, mode="human"):
         info = self.env.get_info()[0]
         _, ob, _ = self.env.observe()
@@ -265,8 +276,9 @@ class ToBaselinesVecEnv(gym3.ToBaselinesVecEnv):
             if "rgb" in info:
                 return info["rgb"]
             else:
-                return ob['rgb'][0]        
+                return ob['rgb'][0]
 
 
 def ProcgenEnv(num_envs, env_name, **kwargs):
-    return ToBaselinesVecEnv(ProcgenGym3Env(num=num_envs, env_name=env_name, **kwargs))
+    return ToBaselinesVecEnv(
+        ProcgenGym3Env(num=num_envs, env_name=env_name, **kwargs))
