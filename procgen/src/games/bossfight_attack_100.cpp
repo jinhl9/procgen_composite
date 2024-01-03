@@ -31,7 +31,7 @@ const int PLAYER_BULLET_VEL = 1;
 
 const int BOTTOM_MARGIN = 6;
 
-const int BOSS_VEL_TIMEOUT = 20;
+const int BOSS_VEL_TIMEOUT = 5;
 //const int BOSS_DAMAGED_TIMEOUT = 10;
 
 const int NUM_SHOOT = 2;
@@ -227,8 +227,7 @@ class BossfightAttack100Game : public BasicAbstractGame {
         // int max_extra_invulnerable = options.distribution_mode == EasyMode ? 1 : 3;
 
         options.center_agent = false;
-
-        boss = add_entity(main_width / 2, main_height / 2, 0, 0, BOSS_R, BOSS);
+        boss = add_entity(rand_gen.randrange(0, main_width), main_height / 2, 0, 0, BOSS_R, BOSS);
         choose_random_theme(boss);
         match_aspect_ratio(boss);
 
