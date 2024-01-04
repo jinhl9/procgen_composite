@@ -108,6 +108,8 @@ if __name__ == '__main__':
                         choices=[
                             "bossfight_move_100", "bossfight_move_200",
                             "bossfight_move_400", "bossfight_attack_100",
+                            "bossfight_moverandom_100", "bossfight_moverandom_200",
+                            "bossfight_moverandom_400",
                             "bossfight_attack_200", "bossfight_attack_400"
                         ],
                         help="game environment type")

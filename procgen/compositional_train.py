@@ -15,8 +15,7 @@ def sigmoid(x):
         return 1. / (1 + np.exp(-x))
 
 
-def train(env, max_num_episode: int, lr: float, V_move_init: float,
-          V_attack_init: float, crop: bool, random_policy: bool, policy: bool,
+def train(env, max_num_episode: int, lr: float, V_move_init: float, crop: bool, random_policy: bool, policy: bool,
           save_frequency: int, W_move: Union[np.ndarray,
                                              None], W_attack: Union[np.ndarray,
                                                                     None]):
@@ -48,7 +47,10 @@ def train(env, max_num_episode: int, lr: float, V_move_init: float,
         W_attack = np.random.normal(loc=0, scale=0.001, size=(N_features))
 
     V_move = V_move_init
-    V_attack = V_attack_init
+    V_attack = 1.-V_move_init
+    norm = np.linalg.norm([V_move, V_attack])
+    V_move = V_move/norm
+    V_attack = V_attack/norm
     W_move_saved = np.zeros(
         (int(max_num_episode // save_frequency) + 1, N_features))
     W_attack_saved = np.zeros(
@@ -139,8 +141,6 @@ if __name__ == '__main__':
     parser.add_argument("--lr", type=float, help='learning_rate')
 
     parser.add_argument("--V-move-init", type=float, help='Initial V_move')
-
-    parser.add_argument("--V-attack-init", type=float, help='Initial V_attack')
     parser.add_argument("--save-frequency",
                         type=int,
                         help='Frequency of saving weights')
@@ -166,7 +166,6 @@ if __name__ == '__main__':
     cumul_reward, reward_history, W_move_saved, W_attack_saved, V_saved = train(
         env=env,
         max_num_episode=args.max_num_episode,
-        V_attack_init=args.V_attack_init,
         V_move_init=args.V_move_init,
         lr=args.lr,
         crop=args.crop,
