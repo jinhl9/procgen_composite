@@ -8,7 +8,7 @@ The reward -1 is given when it does not reach the end of episode (length T) and 
 #include <set>
 #include <queue>
 
-const std::string NAME = "bossfight_move_100";
+const std::string NAME = "bossfight_moverandom_100";
 
 const int COMPLETION_BONUS = 10.0f;
 const int POSITIVE_REWARD = 1.0f;
@@ -34,7 +34,7 @@ const int BOTTOM_MARGIN = 6;
 const int BOSS_VEL_TIMEOUT = 5;
 const int BOSS_DAMAGED_TIMEOUT = 10;
 
-class BossfightMove100Game : public BasicAbstractGame {
+class BossfightMoveRandom100Game : public BasicAbstractGame {
   public:
     std::shared_ptr<Entity> boss, shields;
     std::vector<int> attack_modes;
@@ -63,7 +63,7 @@ class BossfightMove100Game : public BasicAbstractGame {
     float rand_pct_x = 0.0f;
     float rand_pct_y = 0.0f;
 
-    BossfightMove100Game()
+    BossfightMoveRandom100Game()
         : BasicAbstractGame(NAME) {
         //timeout variable is T
         timeout = 100;
@@ -486,4 +486,4 @@ class BossfightMove100Game : public BasicAbstractGame {
     }
 };
 
-REGISTER_GAME(NAME, BossfightMove100Game);
+REGISTER_GAME(NAME, BossfightMoveRandom100Game);

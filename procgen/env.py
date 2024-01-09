@@ -13,10 +13,9 @@ MAX_STATE_SIZE = 2**20
 
 ENV_NAMES = [
     "bigfish",
-    "bossfight",
     "bossfight_move_100",
     "bossfight_move_200",
-    "bossfight_move_400",
+    "bossfight_move_300",
     "bossfight_moverandom_100",
     "bossfight_moverandom_200",
     "bossfight_moverandom_400",

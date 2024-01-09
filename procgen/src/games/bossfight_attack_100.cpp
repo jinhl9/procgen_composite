@@ -1,8 +1,3 @@
-/*
-Varied version of bossfight for a primitive 'movement', where an agent's goal is to avoid the enemy and the bullets during the given time. 
-There is no agent bullet in this version.
-The reward -1 is given when it does not reach the end of episode (length T) and the reward 0 is given when it reach the end of episonde.
-*/
 #include "../basic-abstract-game.h"
 #include "../assetgen.h"
 #include <set>
@@ -10,15 +5,15 @@ The reward -1 is given when it does not reach the end of episode (length T) and 
 
 const std::string NAME = "bossfight_attack_100";
 
-// const int COMPLETION_BONUS = 10.0f;
-// const int POSITIVE_REWARD = 1.0f;
+//const int COMPLETION_BONUS = 10.0f;
+//const int POSITIVE_REWARD = 1.0f;
 
 const int PLAYER_BULLET = 1;
 const int BOSS = 2;
-const int SHIELDS = 1;
-const int ENEMY_BULLET = 1;
+const int SHIELDS = 3;
+const int ENEMY_BULLET = 4;
 const int LASER_TRAIL = 5;
-const int REFLECTED_BULLET = 1;
+const int REFLECTED_BULLET = 6;
 const int BARRIER = 7;
 
 const float BOSS_R = 3;
@@ -31,11 +26,11 @@ const int PLAYER_BULLET_VEL = 1;
 
 const int BOTTOM_MARGIN = 6;
 
-const int BOSS_VEL_TIMEOUT = 5;
-//const int BOSS_DAMAGED_TIMEOUT = 10;
+const int BOSS_VEL_TIMEOUT = 20;
+//const int BOSS_DAMAGED_TIMEOUT = 40;
 
-const int NUM_SHOOT = 2;
-const int SHOOT_BUDGET = 50;
+const int GOAL_SHOOT = 2;
+const int SHOOT_BUDGET = 10;
 
 class BossfightAttack100Game : public BasicAbstractGame {
   public:
@@ -56,6 +51,8 @@ class BossfightAttack100Game : public BasicAbstractGame {
     int damaged_until_time = 0;
     int num_success_shoot = 0;
     int num_shoot = 0;
+
+    int max_time = 100;
     
     bool shields_are_up = false;
     bool barriers_moves_right = false;
@@ -70,14 +67,15 @@ class BossfightAttack100Game : public BasicAbstractGame {
 
     BossfightAttack100Game()
         : BasicAbstractGame(NAME) {
-        //timeout variable is T
-        timeout = 100;
+        timeout = 4000;
 
         main_width = 20;
         main_height = 20;
 
         mixrate = .5;
         maxspeed = 0.85f;
+
+       // agent_health = options.agent_health;
     }
 
     void load_background_images() override {
@@ -127,6 +125,8 @@ class BossfightAttack100Game : public BasicAbstractGame {
         }
         if (obj->type == ENEMY_BULLET) {
             step_data.done = false;
+            //if (agent_health == 0)
+                //step_data.done = true;
         }
     }
 
@@ -154,13 +154,14 @@ class BossfightAttack100Game : public BasicAbstractGame {
                 }
             } else if (target->type == BOSS) {
                 if (!shields_are_up) {
-                    // target->health -= 1;
+                    //target->health -= 1;
                     num_success_shoot += 1;
-                    if (num_success_shoot == NUM_SHOOT) {
+                    if (num_success_shoot == GOAL_SHOOT) {
                         step_data.reward += 1;
                         step_data.done = true;
                     }
                     will_erase = true;
+                    
                     /*
                     if (int(target->health) % round_health == 0) {
                         step_data.reward += POSITIVE_REWARD;
@@ -175,9 +176,9 @@ class BossfightAttack100Game : public BasicAbstractGame {
                             curr_vel_timeout = BOSS_DAMAGED_TIMEOUT;
                             damaged_until_time = cur_time + BOSS_DAMAGED_TIMEOUT;
                         }
-                    }*/
+                    }
+                    */
                 }
-
             }
 
             if (will_erase && !src->will_erase) {
@@ -224,10 +225,11 @@ class BossfightAttack100Game : public BasicAbstractGame {
         num_success_shoot = 0;
         num_shoot = 0;
         boss_bullet_vel = options.distribution_mode == EasyMode ? .5 : .75;
-        // int max_extra_invulnerable = options.distribution_mode == EasyMode ? 1 : 3;
+        //int max_extra_invulnerable = options.distribution_mode == EasyMode ? 1 : 3;
 
         options.center_agent = false;
-        boss = add_entity(rand_gen.randrange(0, main_width), main_height / 2, 0, 0, BOSS_R, BOSS);
+
+        boss = add_entity(main_width / 2, main_height / 2, 0, 0, BOSS_R, BOSS);
         choose_random_theme(boss);
         match_aspect_ratio(boss);
 
@@ -235,7 +237,7 @@ class BossfightAttack100Game : public BasicAbstractGame {
 
         boss_vel_timeout = BOSS_VEL_TIMEOUT;
         base_fire_prob = 0.1f;
-        round_health = 3; // rand_gen.randn(9) + 1;
+        round_health = rand_gen.randn(9) + 1;
         num_rounds = 1 + rand_gen.randn(5);
         //invulnerable_duration = 2 + rand_gen.randn(max_extra_invulnerable + 1);
         vulnerable_duration = 500; // essentially infinite
@@ -256,16 +258,20 @@ class BossfightAttack100Game : public BasicAbstractGame {
         round_num = 0;
         prepare_boss();
 
-        agent->rx = .75;
-        match_aspect_ratio(agent);
-        reposition_agent();
-        agent->y = agent->ry;
+        //agent_health = options.agent_health;
+
+        
 
         barrier_vel = 0.1f;
         barriers_moves_right = rand_gen.randbool();
         barrier_spawn_prob = 0.025f;
 
-        spawn_barriers();
+        spawn_edge_barriers();
+
+        agent->rx = .75;
+        match_aspect_ratio(agent);
+        reposition_agent();
+        agent->y = agent->ry;
 
         // for (int i = 0; i < main_width / barrier_vel; i++) {
         //     spawn_barriers();
@@ -343,8 +349,38 @@ class BossfightAttack100Game : public BasicAbstractGame {
         }
     }
 
+    void spawn_edge_barriers() {
+
+            float barrier_r = 0.6f;
+            float ent_y =  barrier_r + .5;
+
+            float ent_x = main_width - barrier_r;
+            auto ent = std::make_shared<Entity>(ent_x, ent_y, 0, 0, barrier_r, BARRIER);
+            choose_random_theme(ent);
+            match_aspect_ratio(ent);
+            ent->health = 3;
+            ent->collides_with_entities = true;
+
+            if (!has_any_collision(ent)) {
+                entities.push_back(ent);
+            }
+
+            ent_x = barrier_r;
+
+            auto ent2 = std::make_shared<Entity>(ent_x, ent_y, 0, 0, barrier_r, BARRIER);
+            choose_random_theme(ent2);
+            match_aspect_ratio(ent2);
+            ent2->health = 3000;
+            ent2->collides_with_entities = true;
+
+            if (!has_any_collision(ent2)) {
+                entities.push_back(ent2);
+            }
+
+    }
+
     void spawn_barriers() {
-        int num_barriers = 0; // rand_gen.randn(3) + 1;
+        int num_barriers = rand_gen.randn(3) + 1;
         for (int i = 0; i < num_barriers; i++) {
             float barrier_r = 0.6f;
             float min_barrier_y = 2 * agent->ry + barrier_r + .5;
@@ -397,19 +433,19 @@ class BossfightAttack100Game : public BasicAbstractGame {
         } else {
             curr_vel_timeout -= 1;
         }
-        
+
         if (special_action == 1 && (cur_time - last_fire_time) >= 3) {
             auto new_bullet = add_entity(agent->x, agent->y, 0, PLAYER_BULLET_VEL, .25, PLAYER_BULLET);
+            num_shoot += 1;
+            if (num_shoot > SHOOT_BUDGET) {
+                step_data.done = true;
+            }
             new_bullet->image_theme = player_laser_theme;
             new_bullet->collides_with_entities = true;
             new_bullet->expire_time = 25;
             last_fire_time = cur_time;
-            num_shoot += 1;
-            if (num_shoot == SHOOT_BUDGET) {
-                step_data.done = true;
-            }
         }
-        
+
         if (damaged_until_time >= cur_time) {
             damaged_mode();
         } else if (shields_are_up) {
@@ -431,6 +467,9 @@ class BossfightAttack100Game : public BasicAbstractGame {
                 trail->rotation = ent->rotation;
                 trail->expire_time = 8;
             }
+        }
+        if (cur_time > max_time) { // Stop episode at deadline
+            step_data.done = true;
         }
     }
 
@@ -492,7 +531,6 @@ class BossfightAttack100Game : public BasicAbstractGame {
         rand_pct_y = b->read_float();
         num_success_shoot = b->read_int();
         num_shoot = b->read_int();
-
         int boss_idx = find_entity_index(BOSS);
         fassert(boss_idx >= 0);
         boss = entities[boss_idx];

@@ -70,6 +70,7 @@ void Game::parse_options(std::string name, VecOptions opts) {
     opts.consume_int("physics_mode", &options.physics_mode);
     opts.consume_int("debug_mode", &options.debug_mode);
     opts.consume_int("game_type", &game_type);
+    opts.consume_int("agent_health", &options.agent_health);
 
     opts.ensure_empty();
 }
